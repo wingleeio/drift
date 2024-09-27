@@ -1,0 +1,17 @@
+{
+    "include": ["**/*.ts", "**/*.d.ts"],
+    "compilerOptions": {
+        "types": ["@types/bun"],
+        "isolatedModules": true,
+        "esModuleInterop": true,
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "resolveJsonModule": true,
+        "target": "ES2022",
+        "strict": true,
+        "allowJs": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "baseUrl": "."
+    }
+}
