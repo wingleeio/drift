@@ -1,7 +1,9 @@
-import { type } from "arktype";
-import { json } from "src";
+import { body, query } from "src/validation/arktype";
+
 import { Drift } from "src";
-import { body } from "src/validation/arktype";
+import { json } from "src";
+import { type } from "arktype";
+
 // import { Drift, json } from "dist";
 // import { body } from "dist/arktype";
 
@@ -11,13 +13,18 @@ const app = new Drift()
     })
     .post(
         "/echo",
+        query(
+            type({
+                page: "string.numeric",
+            })
+        ),
         body(
             type({
                 message: "string",
                 file: "File",
             })
         ),
-        ({ body }) => {
+        ({ body, query: { page } }) => {
             console.log(body);
             return json(body);
         }
