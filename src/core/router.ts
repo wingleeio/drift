@@ -7,13 +7,19 @@ export class TrieNode<Handler, MapKey> {
 export class TrieRouter<Handler, MapKey> {
     private root = new TrieNode<Handler, MapKey>();
     private static DYNAMIC_KEY = Symbol(":dynamic");
+    private static WILDCARD_KEY = Symbol("*");
 
     public add(path: string, method: MapKey, handler: Handler) {
         let current = this.root;
-        const parts = path.split("/");
-
+        const parts = path.split("/").filter(Boolean);
         for (const part of parts) {
-            if (part.startsWith(":")) {
+            if (part === "*") {
+                if (!current.children.has(TrieRouter.WILDCARD_KEY)) {
+                    current.children.set(TrieRouter.WILDCARD_KEY, new TrieNode());
+                }
+                current = current.children.get(TrieRouter.WILDCARD_KEY)!;
+                break;
+            } else if (part.startsWith(":")) {
                 if (!current.children.has(TrieRouter.DYNAMIC_KEY)) {
                     current.children.set(TrieRouter.DYNAMIC_KEY, new TrieNode());
                 }
@@ -30,25 +36,31 @@ export class TrieRouter<Handler, MapKey> {
         current.handlers.set(method, handler);
     }
 
-    public lookup(path: string, method: MapKey) {
-        const parts = path.split("/");
+    public match(path: string, method: MapKey) {
+        const parts = path.split("/").filter(Boolean);
         let current = this.root;
         const parameters: { [key: string]: string } = {};
 
-        for (const part of parts) {
+        for (let i = 0; i < parts.length; i++) {
+            const part = parts[i];
             if (current.children.has(part)) {
                 current = current.children.get(part)!;
             } else if (current.children.has(TrieRouter.DYNAMIC_KEY)) {
                 current = current.children.get(TrieRouter.DYNAMIC_KEY)!;
                 parameters[current.paramName!] = part;
+            } else if (current.children.has(TrieRouter.WILDCARD_KEY)) {
+                current = current.children.get(TrieRouter.WILDCARD_KEY)!;
+                parameters["*"] = parts.slice(i).join("/");
+                break;
             } else {
                 return { parameters: {}, value: undefined };
             }
         }
 
+        const handler = current.handlers.get(method);
         return {
             parameters,
-            value: current.handlers.get(method),
+            value: handler,
         };
     }
 

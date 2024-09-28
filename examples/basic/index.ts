@@ -5,11 +5,20 @@ import { json } from "src";
 import { type } from "arktype";
 
 // import { Drift, json } from "dist";
-// import { body } from "dist/arktype";
+// import { body, query } from "dist/arktype";
 
 const app = new Drift()
     .get("/", () => {
         return json({ message: "Hello, World!" });
+    })
+    .get("*", () => {
+        return json({ message: "Hello, World2!" });
+    })
+    .get("/users/:id", ({ params }) => {
+        return json({ message: "Hello, World3!" });
+    })
+    .get("/hello/:name", ({ params }) => {
+        return json({ message: `Hello, ${params.name}!` });
     })
     .post(
         "/echo",
@@ -25,7 +34,6 @@ const app = new Drift()
             })
         ),
         ({ body, query: { page } }) => {
-            console.log(body);
             return json(body);
         }
     );

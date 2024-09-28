@@ -18,10 +18,10 @@ export type ExtractContext<TMiddlewares extends Middleware<any, any>[]> = TMiddl
         : {}
     : {};
 
-export type ExtractPathParams<T extends string> = T extends `${string}:${infer Param}/${infer Rest}`
-    ? { [k in Param | keyof ExtractPathParams<Rest>]: string }
+type ExtractPathParams<T extends string> = T extends `${string}:${infer Param}/${infer Rest}`
+    ? { [K in Param | keyof ExtractPathParams<Rest>]: string }
     : T extends `${string}:${infer Param}`
-    ? { [k in Param]: string }
+    ? { [K in Param]: string }
     : {};
 
 export type ContextWithPath<TContext, TPath extends string> = {

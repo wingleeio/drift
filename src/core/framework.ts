@@ -3,12 +3,11 @@ import { Handler } from "./handler";
 import { MethodHandler, CustomMethodHandler } from "./method-handler";
 import { Middleware } from "./middleware";
 import { DriftResponse, JSON_RESPONSE, HTML_RESPONSE } from "./response";
-import { TrieRouter } from "./trie-router";
 import { Unwrap } from "./utils";
+import { TrieRouter } from "src/core/router";
 
 export class Drift<TContext = DefaultContext, TRoutes = {}> {
-    private trie = new TrieRouter<Handler<any, any>, string>();
-    private map = new Map<string, Handler<any, any>>();
+    private router = new TrieRouter<Handler<any, any>, string>();
 
     public middleware: Middleware<any>[] = [];
 
@@ -62,9 +61,7 @@ export class Drift<TContext = DefaultContext, TRoutes = {}> {
         const fn = async (context: any) => {
             return this.handle(context, middlewares, handler);
         };
-        this.map.set(`${method}:${path}`, fn);
-        this.trie.add(path, method, fn);
-
+        this.router.add(path, method, fn);
         return this;
     };
 
@@ -76,12 +73,12 @@ export class Drift<TContext = DefaultContext, TRoutes = {}> {
     ) => {
         if (middleware instanceof Drift) {
             this.middleware.push(...middleware.middleware);
-            this.trie.merge(middleware.trie);
+            this.router.merge(middleware.router);
             return this as Drift<TNewContext & Unwrap<Omit<TContext, keyof TNewContext>>, TRoutes & TNewRoutes>;
         } else if (middleware instanceof Promise) {
             middleware.then((m) => {
                 this.middleware.push(...m.middleware);
-                this.trie.merge(m.trie);
+                this.router.merge(m.router);
             });
             return this as Drift<TNewContext & Unwrap<Omit<TContext, keyof TNewContext>>, TRoutes & TNewRoutes>;
         } else {
@@ -117,49 +114,33 @@ export class Drift<TContext = DefaultContext, TRoutes = {}> {
     public custom: CustomMethodHandler<TContext, TRoutes> = (method: string, path: string, ...handlers: any) => {
         return this.createHandler(method, path, ...handlers);
     };
+    private getBody = async (request: Request) => {
+        const contentType = request.headers.get("Content-Type")?.split(";")[0];
+        switch (contentType) {
+            case "application/json": {
+                return request.json();
+            }
+            case "application/x-www-form-urlencoded":
+            case "multipart/form-data": {
+                return Object.fromEntries(await request.formData());
+            }
+            case undefined: {
+                return undefined;
+            }
+            default: {
+                return request.text();
+            }
+        }
+    };
 
     public fetch = async (request: Request) => {
         const url = new URL(request.url);
-        const key = `${request.method}-${url.pathname}`;
+        const match = this.router.match(url.pathname, request.method);
 
-        let match = { value: this.map.get(key), parameters: {} };
-
-        if (!match.value) {
-            match = this.trie.lookup(url.pathname, request.method as any);
-        }
-        if (!match.value) {
-            match = this.trie.lookup(url.pathname, "ALL");
-        }
-        if (!match.value) {
-            match = this.trie.lookup("*", request.method as any);
-        }
-        if (!match.value) {
-            match = this.trie.lookup("*", "ALL");
-        }
-
-        const handler = match.value;
-
-        if (handler) {
-            let body;
-            const contentType = request.headers.get("Content-Type")?.split(";")[0];
-            switch (contentType) {
-                case "application/json": {
-                    body = await request.json();
-                    break;
-                }
-                case "application/x-www-form-urlencoded":
-                case "multipart/form-data": {
-                    const formData = await request.formData();
-                    body = Object.fromEntries(formData);
-                    break;
-                }
-                default: {
-                    body = await request.text();
-                    break;
-                }
-            }
+        if (match.value) {
+            const body = await this.getBody(request);
             const query = Object.fromEntries(url.searchParams.entries());
-            return this.convertToResponse(await handler({ request, body, query, params: match.parameters }));
+            return this.convertToResponse(await match.value({ request, body, query, params: match.parameters }));
         }
 
         return new Response("Not found", { status: 404 });
