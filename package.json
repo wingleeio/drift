@@ -1,14 +1,15 @@
 {
     "name": "drift",
     "version": "1.0.0",
-    "description": "A framework for building web applications",
+    "description": "A simple framework for building web applications",
     "main": "./dist/index.mjs",
     "module": "./dist/index.mjs",
     "types": "./dist/index.d.ts",
     "scripts": {
         "dev": "tsup --format cjs,esm --dts --watch",
         "build": "tsup --format cjs,esm --dts",
-        "start:example": "bun run examples/basic/index.ts"
+        "start:example": "bun run examples/basic/index.ts",
+        "dev:example": "bun run --watch examples/basic/index.ts"
     },
     "exports": {
         "./package.json": "./package.json",

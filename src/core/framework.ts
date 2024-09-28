@@ -140,7 +140,26 @@ export class Drift<TContext = DefaultContext, TRoutes = {}> {
         const handler = match.value;
 
         if (handler) {
-            return this.convertToResponse(await handler({ request, body: {}, query: {}, params: match.parameters }));
+            let body;
+            const contentType = request.headers.get("Content-Type")?.split(";")[0];
+            switch (contentType) {
+                case "application/json": {
+                    body = await request.json();
+                    break;
+                }
+                case "application/x-www-form-urlencoded":
+                case "multipart/form-data": {
+                    const formData = await request.formData();
+                    body = Object.fromEntries(formData);
+                    break;
+                }
+                default: {
+                    body = await request.text();
+                    break;
+                }
+            }
+            const query = Object.fromEntries(url.searchParams.entries());
+            return this.convertToResponse(await handler({ request, body, query, params: match.parameters }));
         }
 
         return new Response("Not found", { status: 404 });

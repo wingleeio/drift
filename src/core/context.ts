@@ -2,6 +2,9 @@ import { Middleware } from "./middleware";
 
 export type DefaultContext = {
     request: Request;
+    body: any;
+    query: any;
+    params: any;
 };
 
 export type ExtractContext<TMiddlewares extends Middleware<any, any>[]> = TMiddlewares extends [

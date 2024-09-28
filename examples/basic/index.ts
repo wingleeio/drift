@@ -1,6 +1,9 @@
 import { type } from "arktype";
-import { Drift, json } from "dist";
-import { body } from "dist/arktype";
+import { json } from "src";
+import { Drift } from "src";
+import { body } from "src/validation/arktype";
+// import { Drift, json } from "dist";
+// import { body } from "dist/arktype";
 
 const app = new Drift()
     .get("/", () => {
@@ -11,9 +14,11 @@ const app = new Drift()
         body(
             type({
                 message: "string",
+                file: "File",
             })
         ),
         ({ body }) => {
+            console.log(body);
             return json(body);
         }
     );
@@ -22,3 +27,5 @@ Bun.serve({
     port: 3000,
     fetch: app.fetch,
 });
+
+console.log("Server is running on http://localhost:3000");
