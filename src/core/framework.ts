@@ -2,7 +2,6 @@ import { DefaultContext } from "./context";
 import { Handler } from "./handler";
 import { MethodHandler, CustomMethodHandler } from "./method-handler";
 import { Middleware } from "./middleware";
-import { DriftResponse, JSON_RESPONSE, HTML_RESPONSE } from "./response";
 import { Unwrap } from "./utils";
 import { TrieRouter } from "src/core/router";
 
@@ -16,7 +15,7 @@ export class Drift<TContext = DefaultContext, TRoutes = {}> {
         const set = (key: string, value: any) => {
             context[key] = value;
         };
-        const next = async (): Promise<DriftResponse<any, any>> => {
+        const next = async (): Promise<any> => {
             index++;
             if (index < middlewares.length) {
                 const mw = middlewares[index];
@@ -27,31 +26,6 @@ export class Drift<TContext = DefaultContext, TRoutes = {}> {
         };
 
         return next();
-    };
-
-    private convertToResponse = <TData>(response: Response | DriftResponse<TData, number>) => {
-        if (response instanceof Response) {
-            return response;
-        }
-
-        switch (response.type) {
-            case JSON_RESPONSE: {
-                return new Response(JSON.stringify(response.data), {
-                    status: response.code,
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                });
-            }
-            case HTML_RESPONSE: {
-                return new Response(response.data, {
-                    status: response.code,
-                    headers: {
-                        "Content-Type": "text/html",
-                    },
-                });
-            }
-        }
     };
 
     private createHandler = (method: string, path: string, ...handlers: any) => {
@@ -114,6 +88,7 @@ export class Drift<TContext = DefaultContext, TRoutes = {}> {
     public custom: CustomMethodHandler<TContext, TRoutes> = (method: string, path: string, ...handlers: any) => {
         return this.createHandler(method, path, ...handlers);
     };
+
     private getBody = async (request: Request) => {
         const contentType = request.headers.get("Content-Type")?.split(";")[0];
         switch (contentType) {
@@ -133,6 +108,25 @@ export class Drift<TContext = DefaultContext, TRoutes = {}> {
         }
     };
 
+    private makeResponse = (data: any) => {
+        if (typeof data === "string") {
+            return new Response(data, {
+                status: 200,
+                headers: {
+                    "Content-Type": "text/html",
+                },
+            });
+        } else if (typeof data === "object") {
+            return new Response(JSON.stringify(data), {
+                status: 200,
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
+        }
+        return new Response(null, { status: 200 });
+    };
+
     public fetch = async (request: Request) => {
         const url = new URL(request.url);
         const match = this.router.match(url.pathname, request.method);
@@ -140,7 +134,8 @@ export class Drift<TContext = DefaultContext, TRoutes = {}> {
         if (match.value) {
             const body = await this.getBody(request);
             const query = Object.fromEntries(url.searchParams.entries());
-            return this.convertToResponse(await match.value({ request, body, query, params: match.parameters }));
+            const response = await match.value({ request, body, query, params: match.parameters });
+            return this.makeResponse(response);
         }
 
         return new Response("Not found", { status: 404 });

@@ -1,24 +1,18 @@
 import { body, query } from "src/validation/arktype";
 
-import { Drift } from "src";
-import { json } from "src";
+import { Drift, error } from "src";
 import { type } from "arktype";
+import {} from "src/core/error";
 
 // import { Drift, json } from "dist";
 // import { body, query } from "dist/arktype";
 
 const app = new Drift()
     .get("/", () => {
-        return json({ message: "Hello, World!" });
-    })
-    .get("*", () => {
-        return json({ message: "Hello, World2!" });
-    })
-    .get("/users/:id", ({ params }) => {
-        return json({ message: "Hello, World3!" });
-    })
-    .get("/hello/:name", ({ params }) => {
-        return json({ message: `Hello, ${params.name}!` });
+        if (Math.random() > 0.5) {
+            return error({ message: "Random error" }, 500);
+        }
+        return { message: "Hello, World!" };
     })
     .post(
         "/echo",
@@ -34,7 +28,10 @@ const app = new Drift()
             })
         ),
         ({ body, query: { page } }) => {
-            return json(body);
+            return {
+                ...body,
+                page,
+            };
         }
     );
 

@@ -1,3 +1,4 @@
+import { DRIFT_ERROR } from "src/core/error";
 import { DefaultContext, ContextWithPath, ContextWithMiddleware } from "./context";
 import { Drift } from "./framework";
 import { Handler, HandlerWithMiddleware } from "./handler";
@@ -19,7 +20,17 @@ export type NewRoute<
             query: ContextWithMiddleware<TContext, TMiddlewares>["query"];
             // @ts-ignore
             params: ContextWithMiddleware<TContext, TMiddlewares>["params"];
-            output: TData;
+            output: TData extends {
+                [DRIFT_ERROR]: any;
+                code: number;
+                data: infer TErrorData;
+            }
+                ? {
+                      [key in TData["code"]]: TErrorData;
+                  }
+                : {
+                      200: TData;
+                  };
         };
     };
 };
