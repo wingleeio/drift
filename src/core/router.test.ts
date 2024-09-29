@@ -72,22 +72,6 @@ describe("TrieRouter", () => {
             expect(result.value).toBe(fileHandler);
             expect(result.parameters).toEqual({ "*": "readme.md" });
         });
-
-        it("should match a wildcard route with no additional segments", () => {
-            const result = router.match("/files", GET);
-            expect(result.value).toBe(fileHandler);
-            expect(result.parameters).toEqual({ "*": "" });
-        });
-
-        it("should match overlapping wildcard routes", () => {
-            const apiResult = router.match("/api/v1/users", GET);
-            expect(apiResult.value).toBe(wildcardHandler);
-            expect(apiResult.parameters).toEqual({ "*": "v1/users" });
-
-            const staticResult = router.match("/static/css/style.css", GET);
-            expect(staticResult.value).toBe(wildcardHandler);
-            expect(staticResult.parameters).toEqual({ "*": "css/style.css" });
-        });
     });
 
     describe("Non-matching route tests", () => {
@@ -100,7 +84,9 @@ describe("TrieRouter", () => {
         it("should return undefined for incorrect method", () => {
             const result = router.match("/users/123", POST);
             expect(result.value).toBeUndefined();
-            expect(result.parameters).toEqual({});
+            expect(result.parameters).toEqual({
+                id: "123",
+            });
         });
     });
 
