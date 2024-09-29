@@ -1,3 +1,4 @@
+import { DRIFT_ERROR } from "src/core/error";
 import { DefaultContext } from "./context";
 import { Handler } from "./handler";
 import { MethodHandler, CustomMethodHandler } from "./method-handler";
@@ -109,7 +110,14 @@ export class Drift<TContext = DefaultContext, TRoutes = {}> {
     };
 
     private makeResponse = (data: any) => {
-        if (typeof data === "string") {
+        if (DRIFT_ERROR in data) {
+            return new Response(JSON.stringify(data.data), {
+                status: data.code,
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
+        } else if (typeof data === "string") {
             return new Response(data, {
                 status: 200,
                 headers: {
